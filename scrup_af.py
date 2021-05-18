@@ -1,17 +1,17 @@
 import requests
-import csv
+import json
 from bs4 import BeautifulSoup
 
 
 URL = 'https://angel-loves.com/aforizmy/aforizmy-pro-revnost.html'
+MODEL = 'aphorisms.Aphorisms'
+PK = 1
+CAT_ID = 1
 
 
-def csv_write(data: list):
-    with open('data.csv', 'w') as csv_file:
-        writer = csv.DictWriter(csv_file, fieldnames=['title', 'author'])
-        for line in data:
-            writer.writerow(line)
-    csv_file.close()
+def json_writen(data):
+    with open('data.json', 'w', encoding='utf-8') as json_file:
+        json.dump(data, json_file)
 
 
 def query_paginate(link: str):
@@ -38,8 +38,13 @@ def query_page(link: str):
         new_str = new_str.strip()
         text = new_str[:-len(new_author)]
         response.append({
-            'title': text,
-            'author': new_author
+            'model': MODEL,
+            'pk': PK,
+            'fields': {
+                'content': text,
+                'author': new_author,
+                'category': CAT_ID,
+            }
         })
         if counter > count:
             break
@@ -52,4 +57,4 @@ all_resource = []
 for page in pages:
     q = query_page(page)
     all_resource.extend(q)
-csv_write(all_resource)
+json_writen(all_resource)
