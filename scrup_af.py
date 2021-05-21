@@ -1,20 +1,20 @@
 import requests
 import json
 from bs4 import BeautifulSoup
+from datetime import datetime
 
 
-URL = 'https://angel-loves.com/aforizmy/aforizmy-pro-revnost.html'
 MODEL = 'aphorisms.Aphorisms'
-PK = 1
-CAT_ID = 1
+DATE_NOW = str(datetime.now())
 
 
-def json_writen(data):
-    with open('data.json', 'w', encoding='utf-8') as json_file:
+def json_writen(data, name):
+    with open(f'{name}.json', 'w', encoding='utf-8') as json_file:
         json.dump(data, json_file)
 
 
-def query_paginate(link: str):
+def query_paginate(link: str) -> list:
+    """Получаем все страницы с пагинацией"""
     query = requests.get(link)
     soup = BeautifulSoup(query.text, 'html.parser')
     page_list = soup.find_all('span', {'class': 'pagelist'})
@@ -23,7 +23,7 @@ def query_paginate(link: str):
     return result
 
 
-def query_page(link: str):
+def query_page(link: str, category: int):
     """Данные с одной страницы"""
     query = requests.get(link)
     soup = BeautifulSoup(query.text, 'html.parser')
@@ -33,17 +33,22 @@ def query_page(link: str):
     response = []
     counter = 0
     for item in result:
-        new_author = str(result_author[counter].get_text())
         new_str = str(item.get_text())
         new_str = new_str.strip()
-        text = new_str[:-len(new_author)]
+        if not result_author:
+            new_author = str(result_author[counter].get_text())
+            text = new_str[:-len(new_author)]
+        else:
+            new_author = ''
+            text = new_str
         response.append({
             'model': MODEL,
-            'pk': PK,
             'fields': {
                 'content': text,
                 'author': new_author,
-                'category': CAT_ID,
+                'category': category,
+                'time_create': DATE_NOW,
+                'time_update': DATE_NOW
             }
         })
         if counter > count:
@@ -52,9 +57,16 @@ def query_page(link: str):
     return response
 
 
-pages = query_paginate(URL)
-all_resource = []
-for page in pages:
-    q = query_page(page)
-    all_resource.extend(q)
-json_writen(all_resource)
+while True:
+    url = str(input('Введите URL '))
+    cat_id = int(input('Введите категорию '))
+    file_name = str(input('Введите название файла '))
+    parse_off = int(input('Продолжать работу? '))
+    page = query_paginate(url)
+    all_data = []
+    for link_query in page:
+        q = query_page(link_query, cat_id)
+        all_data.extend(q)
+    json_writen(all_data, file_name)
+    if parse_off == 0:
+        break
